@@ -5,7 +5,13 @@ import tseslint from "typescript-eslint";
 import { featureImports } from "./tooling/feature-imports.ts";
 
 export default defineConfig(
-  globalIgnores(["dist/", "coverage/", "playwright-report/", "test-results/"]),
+  globalIgnores([
+    "dist/",
+    "coverage/",
+    "playwright-report/",
+    "test-results/",
+    "src/api/generated/",
+  ]),
   js.configs.recommended,
   {
     files: ["**/*.{ts,tsx}"],
