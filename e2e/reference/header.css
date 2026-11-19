@@ -1,0 +1,11 @@
+header,
+header * {
+  font-family: "DejaVu Sans", sans-serif !important;
+}
+
+@media (min-width: 900px) {
+  header [data-account-summary] {
+    width: 144px;
+    height: 46px;
+  }
+}
