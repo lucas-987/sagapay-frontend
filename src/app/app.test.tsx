@@ -1,8 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act } from "react";
+import { http, HttpResponse } from "msw";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { renderApp } from "../test/render-app";
+import { server } from "../test/setup";
 import { appRoutes } from "./app-routes";
 import { RootErrorBoundary } from "./root-error-boundary";
 
@@ -29,6 +31,15 @@ function emulateColorScheme(dark: boolean) {
 }
 
 beforeEach(() => {
+  server.use(
+    http.get("*/v1/wallet", () =>
+      HttpResponse.json({
+        balance: { currency: "EUR", amount: "5.00" },
+        available: { currency: "EUR", amount: "4.00" },
+        held: { currency: "EUR", amount: "1.00" },
+      }),
+    ),
+  );
   localStorage.clear();
   emulateColorScheme(false);
 });

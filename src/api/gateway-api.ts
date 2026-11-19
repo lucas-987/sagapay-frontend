@@ -3,7 +3,7 @@ import {
   fetchBaseQuery,
   type BaseQueryFn,
   type FetchArgs,
-} from "@reduxjs/toolkit/query";
+} from "@reduxjs/toolkit/query/react";
 import { mapFetchError, type ApiError } from "./api-error";
 import type { SessionPort } from "./session";
 
