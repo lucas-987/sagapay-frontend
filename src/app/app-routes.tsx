@@ -2,12 +2,23 @@ import { Navigate, type NonIndexRouteObject } from "react-router";
 import { ActivityPage } from "../features/activity";
 import { SendMoneyPage } from "../features/send";
 import { ApplicationFailure, PageNotFound, RouteFailure } from "./error-pages";
+import { AuthCallbackPage } from "./auth-callback-page";
 import { Layout } from "./layout";
+import { RequireSession } from "./require-session";
+
+function GuardedLayout() {
+  return (
+    <RequireSession>
+      <Layout />
+    </RequireSession>
+  );
+}
 
 export const appRoutes: NonIndexRouteObject[] = [
+  { path: "/auth/callback", Component: AuthCallbackPage },
   {
     path: "/",
-    Component: Layout,
+    Component: GuardedLayout,
     ErrorBoundary: ApplicationFailure,
     children: [
       {

@@ -1,19 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act } from "react";
-import { createMemoryRouter } from "react-router";
-import { RouterProvider } from "react-router/dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { renderApp } from "../test/render-app";
 import { appRoutes } from "./app-routes";
 import { RootErrorBoundary } from "./root-error-boundary";
-
-function renderApp(path: string) {
-  const router = createMemoryRouter(appRoutes, { initialEntries: [path] });
-  return {
-    router,
-    ...render(<RouterProvider router={router} />),
-  };
-}
 
 function emulateColorScheme(dark: boolean) {
   const target = new EventTarget();
@@ -53,7 +44,7 @@ test.each([
 ])(
   "displays the $active outlet and marks its navigation link current",
   async ({ path, active, other }) => {
-    renderApp(path);
+    await renderApp(path);
 
     const nav = within(
       screen.getByRole("navigation", { name: "Main navigation" }),
@@ -87,7 +78,7 @@ test.each([
 );
 
 test("redirects the index route to Activity", async () => {
-  const { router } = renderApp("/");
+  const { router } = await renderApp("/");
 
   expect(
     await screen.findByRole("heading", { level: 1, name: "Activity" }),
@@ -97,7 +88,7 @@ test("redirects the index route to Activity", async () => {
 });
 
 test("keeps the navigation available and explains an unknown route", async () => {
-  renderApp("/missing");
+  await renderApp("/missing");
 
   expect(screen.getByRole("link", { name: "Activity" })).toBeVisible();
   expect(screen.getByRole("link", { name: "Send money" })).toBeVisible();
@@ -114,10 +105,10 @@ test.each([
   { systemDark: true, switchTo: "light" },
 ])(
   "uses the system scheme and offers to switch to $switchTo without a saved choice",
-  ({ systemDark, switchTo }) => {
+  async ({ systemDark, switchTo }) => {
     emulateColorScheme(systemDark);
 
-    renderApp("/activity");
+    await renderApp("/activity");
 
     expect(
       screen.getByRole("button", { name: `Switch to ${switchTo} theme` }),
@@ -125,9 +116,9 @@ test.each([
   },
 );
 
-test("updates to the system color scheme while using the default", () => {
+test("updates to the system color scheme while using the default", async () => {
   const changeColorScheme = emulateColorScheme(false);
-  renderApp("/activity");
+  await renderApp("/activity");
 
   act(() => {
     changeColorScheme(true);
@@ -146,7 +137,7 @@ test.each([
   async ({ systemDark, first, next }) => {
     emulateColorScheme(systemDark);
     const user = userEvent.setup();
-    const { unmount } = renderApp("/activity");
+    const { unmount } = await renderApp("/activity");
 
     await user.click(
       screen.getByRole("button", { name: `Switch to ${first} theme` }),
@@ -157,7 +148,7 @@ test.each([
     ).toBeVisible();
     expect(localStorage.getItem("sagapay-theme")).toBe(first);
     unmount();
-    renderApp("/activity");
+    await renderApp("/activity");
 
     expect(
       screen.getByRole("button", { name: `Switch to ${next} theme` }),
@@ -165,10 +156,10 @@ test.each([
   },
 );
 
-test("ignores an unsupported saved theme", () => {
+test("ignores an unsupported saved theme", async () => {
   localStorage.setItem("sagapay-theme", "sepia");
 
-  renderApp("/activity");
+  await renderApp("/activity");
 
   expect(
     screen.getByRole("button", { name: "Switch to dark theme" }),
@@ -183,7 +174,7 @@ test("keeps the theme usable if theme storage is unavailable", async () => {
     throw new DOMException("Storage unavailable", "SecurityError");
   });
   const user = userEvent.setup();
-  renderApp("/activity");
+  await renderApp("/activity");
 
   await user.click(
     screen.getByRole("button", { name: "Switch to dark theme" }),
@@ -202,19 +193,16 @@ test("shows fixed route recovery copy and retains navigation after a render fail
   const expectedError = vi
     .spyOn(console, "error")
     .mockImplementation(() => undefined);
-  const router = createMemoryRouter(
-    appRoutes.map((route) => ({
-      ...route,
-      children: route.children?.map((child) =>
-        child.path === "activity"
-          ? { ...child, Component: FailingScreen }
-          : child,
-      ),
-    })),
-    { initialEntries: ["/activity"] },
-  );
+  const routes = appRoutes.map((route) => ({
+    ...route,
+    children: route.children?.map((child) =>
+      child.path === "activity"
+        ? { ...child, Component: FailingScreen }
+        : child,
+    ),
+  }));
   const user = userEvent.setup();
-  render(<RouterProvider router={router} />);
+  await renderApp("/activity", { routes });
 
   expect(
     await screen.findByRole("heading", {
@@ -233,16 +221,16 @@ test("shows fixed route recovery copy and retains navigation after a render fail
   ).toBeVisible();
 });
 
-test("shows fixed application recovery copy when the layout fails", () => {
+test("shows fixed application recovery copy when the layout fails", async () => {
   const expectedError = vi
     .spyOn(console, "error")
     .mockImplementation(() => undefined);
-  const router = createMemoryRouter(
-    appRoutes.map((route) => ({ ...route, Component: FailingScreen })),
-    { initialEntries: ["/activity"] },
-  );
+  const routes = appRoutes.map((route) => ({
+    ...route,
+    Component: FailingScreen,
+  }));
 
-  render(<RouterProvider router={router} />);
+  await renderApp("/activity", { routes });
 
   expect(
     screen.getByRole("heading", { level: 1, name: "SagaPay could not start" }),

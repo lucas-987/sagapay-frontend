@@ -45,6 +45,16 @@ describe("initialization", () => {
     expect(adapter.getState()).toEqual({ status: "signed-out" });
   });
 
+  test("is signed out when the browser storage cannot be read", async () => {
+    const fake = fakeOidcClient(julien);
+    fake.client.getUser.mockRejectedValueOnce(new Error("storage denied"));
+    const adapter = createAuthAdapter(fake.client);
+
+    await adapter.initialize();
+
+    expect(adapter.getState()).toEqual({ status: "signed-out" });
+  });
+
   test("does not overwrite a customer who signed in while it was loading", async () => {
     const fake = fakeOidcClient(null);
     const adapter = createAuthAdapter(fake.client);
@@ -141,6 +151,7 @@ describe("sign in", () => {
     expect(await adapter.completeSignIn("http://x/auth/callback")).toBe(
       "/activity",
     );
+    expect(adapter.getState()).toEqual({ status: "sign-in-failed" });
   });
 
   test("goes to the activity page when the callback returns no customer", async () => {
@@ -150,6 +161,50 @@ describe("sign in", () => {
     expect(await adapter.completeSignIn("http://x/auth/callback")).toBe(
       "/activity",
     );
+    expect(adapter.getState()).toEqual({ status: "sign-in-failed" });
+  });
+
+  test("a refused callback does not sign out a customer who is signed in", async () => {
+    const fake = fakeOidcClient(julien);
+    fake.client.signinCallback.mockRejectedValue(new Error("stale callback"));
+    const adapter = createAuthAdapter(fake.client);
+    await adapter.initialize();
+
+    await adapter.completeSignIn("http://x/auth/callback");
+
+    expect(adapter.getState()).toEqual({
+      status: "signed-in",
+      subject: "julien-id",
+      displayName: "Julien Simon",
+    });
+  });
+
+  test("a stored customer found after a refused callback is signed in", async () => {
+    const fake = fakeOidcClient(julien);
+    fake.client.signinCallback.mockRejectedValue(new Error("stale callback"));
+    const adapter = createAuthAdapter(fake.client);
+    const initializing = adapter.initialize();
+    await adapter.completeSignIn("http://x/auth/callback");
+
+    await initializing;
+
+    expect(adapter.getState()).toEqual({
+      status: "signed-in",
+      subject: "julien-id",
+      displayName: "Julien Simon",
+    });
+  });
+
+  test("no stored customer after a refused callback keeps the failure", async () => {
+    const fake = fakeOidcClient(null);
+    fake.client.signinCallback.mockRejectedValue(new Error("stale callback"));
+    const adapter = createAuthAdapter(fake.client);
+    const initializing = adapter.initialize();
+    await adapter.completeSignIn("http://x/auth/callback");
+
+    await initializing;
+
+    expect(adapter.getState()).toEqual({ status: "sign-in-failed" });
   });
 });
 
@@ -318,6 +373,20 @@ describe("sign out", () => {
     expect(fake.client.removeUser).toHaveBeenCalledTimes(1);
     expect(adapter.getState()).toEqual({ status: "signed-out" });
     expect(await adapter.getAccessToken()).toBeNull();
+  });
+});
+
+describe("sign out failure", () => {
+  test("signs out even when the local session cannot be removed", async () => {
+    const fake = fakeOidcClient(julien);
+    fake.client.signoutRedirect.mockRejectedValue(new Error("offline"));
+    fake.client.removeUser.mockRejectedValue(new Error("storage denied"));
+    const adapter = createAuthAdapter(fake.client);
+    await adapter.initialize();
+
+    await adapter.signOut();
+
+    expect(adapter.getState()).toEqual({ status: "signed-out" });
   });
 });
 

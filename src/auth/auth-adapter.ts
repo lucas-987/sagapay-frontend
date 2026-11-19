@@ -18,18 +18,19 @@ export type SessionState =
   | { status: "loading" }
   | { status: "signed-in"; subject: string; displayName: string }
   | { status: "signed-out" }
+  | { status: "sign-in-failed" }
   | { status: "signing-out" };
 
 export type SessionEvent = "signed-out" | "user-changed" | "expired";
 
 export interface AuthAdapter extends SessionPort {
-  getState(): SessionState;
-  onChange(listener: () => void): () => void;
-  onEvent(listener: (event: SessionEvent) => void): () => void;
-  initialize(): Promise<void>;
-  signIn(returnTo: string): Promise<void>;
-  completeSignIn(callbackUrl: string): Promise<string>;
-  signOut(): Promise<void>;
+  getState: () => SessionState;
+  onChange: (listener: () => void) => () => void;
+  onEvent: (listener: (event: SessionEvent) => void) => () => void;
+  initialize: () => Promise<void>;
+  signIn: (returnTo: string) => Promise<void>;
+  completeSignIn: (callbackUrl: string) => Promise<string>;
+  signOut: () => Promise<void>;
 }
 
 const defaultPath = "/activity";
@@ -85,12 +86,19 @@ export function createAuthAdapter(client: OidcClient): AuthAdapter {
   client.events.addAccessTokenExpired(expire);
   client.events.addSilentRenewError(expire);
 
+  // A refused callback leaves the customer signed out. The guard must not
+  // redirect to Keycloak again, which would answer at once and loop.
+  const failSignIn = () => {
+    if (state.status !== "signed-in") setState({ status: "sign-in-failed" });
+    return defaultPath;
+  };
+
   async function finishSignIn(url: string): Promise<string> {
     try {
       const user = await client.signinCallback(url);
-      return safeReturnPath(user?.state);
+      return user === undefined ? failSignIn() : safeReturnPath(user.state);
     } catch {
-      return defaultPath;
+      return failSignIn();
     }
   }
 
@@ -105,13 +113,14 @@ export function createAuthAdapter(client: OidcClient): AuthAdapter {
       return () => eventListeners.delete(listener);
     },
     async initialize() {
-      const user = await client.getUser();
-      if (state.status !== "loading") return;
-      setState(
-        user !== null && user.expired !== true
-          ? signedIn(user)
-          : { status: "signed-out" },
-      );
+      const user = await client.getUser().catch(() => null);
+      const failed = state.status === "sign-in-failed";
+      if (state.status !== "loading" && !failed) return;
+      if (user !== null && user.expired !== true) {
+        setState(signedIn(user));
+      } else if (!failed) {
+        setState({ status: "signed-out" });
+      }
     },
     signIn: (returnTo) => client.signinRedirect({ state: returnTo }),
     completeSignIn(url) {
@@ -126,7 +135,8 @@ export function createAuthAdapter(client: OidcClient): AuthAdapter {
       try {
         await client.signoutRedirect();
       } catch {
-        await client.removeUser();
+        // Whatever happens to the stored session, this tab no longer holds it.
+        await client.removeUser().catch(() => undefined);
         setState({ status: "signed-out" });
       }
     },

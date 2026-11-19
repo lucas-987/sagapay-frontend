@@ -1,6 +1,7 @@
 import AccountCircleOutlined from "@mui/icons-material/AccountCircleOutlined";
 import DarkModeOutlined from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlined from "@mui/icons-material/LightModeOutlined";
+import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
 import ReceiptLongOutlined from "@mui/icons-material/ReceiptLongOutlined";
 import SendOutlined from "@mui/icons-material/SendOutlined";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@mui/material";
 import { useMemo } from "react";
 import { NavLink, Outlet } from "react-router";
+import { useSession } from "../auth/session-context";
 import { makeTheme } from "../shared/theme/theme";
 import { useThemePreference } from "../shared/theme/use-theme-preference";
 
@@ -23,6 +25,7 @@ const destinations = [
 ];
 
 export function Layout() {
+  const session = useSession();
   const { mode, toggleMode } = useThemePreference();
   const theme = useMemo(() => makeTheme(mode), [mode]);
   const dark = mode === "dark";
@@ -168,11 +171,25 @@ export function Layout() {
                   <AccountCircleOutlined fontSize="small" />
                 </Avatar>
                 <Box sx={{ display: { xs: "none", md: "block" } }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {session.state.status === "signed-in"
+                      ? session.state.displayName
+                      : ""}
+                  </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Personal account
                   </Typography>
                 </Box>
               </Box>
+              <IconButton
+                onClick={() => {
+                  void session.signOut();
+                }}
+                aria-label="Sign out"
+                sx={{ width: 40, height: 40, color: "text.secondary" }}
+              >
+                <LogoutOutlined fontSize="small" />
+              </IconButton>
             </Box>
           </Box>
         </Box>
