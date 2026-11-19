@@ -21,6 +21,36 @@ jobs:
       - run: pnpm run verify
       - run: pnpm audit --prod
 
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Read the recorded backend revision
+        id: backend
+        run: echo "revision=$(cat tooling/backend-revision)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v6
+        with:
+          repository: lucas-987/sagapay
+          ref: ${{ steps.backend.outputs.revision }}
+          path: .sagapay-backend
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run api:types
+        env:
+          SAGAPAY_BACKEND_DIR: ${{ github.workspace }}/.sagapay-backend
+      - name: Check the generated types are committed
+        run: |
+          if [[ -n "$(git status --porcelain -- src/api/generated)" ]]; then
+            git status --short -- src/api/generated
+            git diff -- src/api/generated
+            exit 1
+          fi
+
   browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
