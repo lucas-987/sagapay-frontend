@@ -3,13 +3,14 @@ import { useSession } from "../../auth/session-context";
 import { TransferList } from "./transfer-list";
 import { useGetWalletQuery } from "./wallet-api";
 import { WalletCard } from "./wallet-card";
-import { useTransferRows } from "./use-transfer-rows";
+import { TransferDrawer } from "./transfer-drawer";
+import { useActivity } from "./use-activity";
 
 export function ActivityPage() {
   const wallet = useGetWalletQuery(undefined);
   const { state } = useSession();
   const customerId = state.status === "signed-in" ? state.subject : "";
-  const list = useTransferRows(customerId);
+  const { list, drawer, close } = useActivity(customerId);
 
   return (
     <>
@@ -34,6 +35,7 @@ export function ActivityPage() {
         Recent activity
       </Typography>
       <TransferList {...list} />
+      <TransferDrawer content={drawer} onClose={close} />
     </>
   );
 }

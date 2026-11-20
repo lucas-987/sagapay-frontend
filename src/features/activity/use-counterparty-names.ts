@@ -14,8 +14,7 @@ function cachedNames(queries: ApiState["gatewayApi"]["queries"]) {
   const asked = new Set<string>();
   for (const entry of Object.values(queries)) {
     if (entry?.endpointName !== "getNames") continue;
-    for (const id of (entry.originalArgs as readonly string[] | undefined) ??
-      []) {
+    for (const id of entry.originalArgs as unknown as readonly string[]) {
       asked.add(id);
     }
     if (entry.data !== undefined) {
