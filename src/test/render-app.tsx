@@ -1,6 +1,7 @@
 import { render } from "@testing-library/react";
 import { createMemoryRouter, type RouteObject } from "react-router";
 import { RouterProvider } from "react-router/dom";
+import type { ActivityStreamOptions } from "../realtime/activity-stream";
 import { appRoutes } from "../app/app-routes";
 import { createApplication } from "../app/application";
 import { ApplicationProviders } from "../app/application-providers";
@@ -13,9 +14,14 @@ export async function renderApp(
   {
     fake = fakeOidcClient(julien),
     routes = appRoutes,
-  }: { fake?: ReturnType<typeof fakeOidcClient>; routes?: RouteObject[] } = {},
+    stream,
+  }: {
+    fake?: ReturnType<typeof fakeOidcClient>;
+    routes?: RouteObject[];
+    stream?: ActivityStreamOptions;
+  } = {},
 ) {
-  const application = createApplication(fake.client);
+  const application = createApplication(fake.client, { stream });
   await application.ready;
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   const view = render(
