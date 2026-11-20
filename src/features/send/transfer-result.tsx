@@ -5,6 +5,7 @@ import {
   useGetTransferQuery,
   type Transfer,
 } from "../activity";
+import { VerificationPrompt, verificationDeadlineOf } from "../verification";
 import { progressOf } from "./transfer-progress";
 
 export function TransferResult({ accepted }: { accepted: Transfer }) {
@@ -12,6 +13,7 @@ export function TransferResult({ accepted }: { accepted: Transfer }) {
   const transfer = detail.data ?? accepted;
   const steps = progressOf(transfer.status);
   const failure = transfer.failureReason;
+  const deadline = verificationDeadlineOf(transfer);
   return (
     <Card sx={{ p: { xs: 2.5, sm: 3.5 } }}>
       <Typography variant="h6">Your transfer</Typography>
@@ -34,6 +36,13 @@ export function TransferResult({ accepted }: { accepted: Transfer }) {
               </Typography>
             ))}
           </Stack>
+        )}
+        {deadline !== undefined && (
+          <VerificationPrompt
+            key={transfer.id}
+            transferId={transfer.id}
+            deadline={deadline}
+          />
         )}
         <Button component={Link} to={`/activity?transfer=${transfer.id}`}>
           View transfer details
