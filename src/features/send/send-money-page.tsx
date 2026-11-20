@@ -3,6 +3,7 @@ import { Box, Button, Typography } from "@mui/material";
 import { Link } from "react-router";
 import { HowItWorks } from "./how-it-works";
 import { SendForm } from "./send-form";
+import { TransferResult } from "./transfer-result";
 import { useSendForm } from "./use-send-form";
 
 export function SendMoneyPage() {
@@ -28,7 +29,11 @@ export function SendMoneyPage() {
           alignItems: "start",
         }}
       >
-        <SendForm {...form} />
+        {form.submission.accepted === undefined ? (
+          <SendForm {...form} />
+        ) : (
+          <TransferResult accepted={form.submission.accepted} />
+        )}
         <HowItWorks />
       </Box>
     </>

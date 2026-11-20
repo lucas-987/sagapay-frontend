@@ -4,7 +4,7 @@ export interface TransferPayload {
   note?: string;
 }
 
-export interface Intent {
+export interface TransferIntent {
   key: string;
   payload: TransferPayload;
 }
@@ -27,7 +27,7 @@ export function payloadOf({
   };
 }
 
-function samePayload(a: TransferPayload, b: TransferPayload): boolean {
+export function samePayload(a: TransferPayload, b: TransferPayload): boolean {
   return (
     a.toUserId === b.toUserId &&
     a.amount.amount === b.amount.amount &&
@@ -37,10 +37,10 @@ function samePayload(a: TransferPayload, b: TransferPayload): boolean {
 }
 
 export function intentFor(
-  previous: Intent | undefined,
+  previous: TransferIntent | undefined,
   payload: TransferPayload,
   newKey: () => string,
-): Intent {
+): TransferIntent {
   return previous !== undefined && samePayload(previous.payload, payload)
     ? previous
     : { key: newKey(), payload };

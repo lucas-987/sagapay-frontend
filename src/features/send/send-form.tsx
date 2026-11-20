@@ -229,6 +229,33 @@ function NoteField({ note }: Pick<SendFormState, "note">) {
   );
 }
 
+const noticeMessages = {
+  uncertain:
+    "We could not confirm that your transfer was sent. Retrying sends the same payment, so it is paid once.",
+  "key-reused":
+    "This payment was already sent with different details. Check your activity before sending again.",
+  failed: "The transfer could not be sent. Try again.",
+} as const;
+
+function SendNotice({ submission }: Pick<SendFormState, "submission">) {
+  const { notice, submit, sending } = submission;
+  if (notice === undefined) return null;
+  return (
+    <Alert
+      severity={notice === "uncertain" ? "warning" : "error"}
+      action={
+        notice === "uncertain" ? (
+          <Button disabled={sending} onClick={submit}>
+            Retry
+          </Button>
+        ) : undefined
+      }
+    >
+      {noticeMessages[notice]}
+    </Alert>
+  );
+}
+
 export function SendForm(form: SendFormState) {
   return (
     <Card sx={{ p: { xs: 2.5, sm: 3.5 } }}>
@@ -244,11 +271,13 @@ export function SendForm(form: SendFormState) {
         <RecipientField recipient={form.recipient} />
         <AmountField amount={form.amount} wallet={form.wallet} />
         <NoteField note={form.note} />
+        <SendNotice submission={form.submission} />
         <Button
           variant="contained"
           size="large"
           endIcon={<SendOutlined />}
           disabled={!form.canSend}
+          onClick={form.submission.submit}
         >
           Send money
         </Button>

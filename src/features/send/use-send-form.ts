@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useGetWalletQuery } from "../activity";
 import { checkAmount, type AmountCheck } from "./amount";
 import type { Recipient } from "./recipient-api";
+import { payloadOf } from "./transfer-intent";
 import { useRecipientLookup } from "./use-recipient-lookup";
+import { useSubmitTransfer } from "./use-submit-transfer";
 
 export const noteMaxLength = 200;
 
@@ -18,6 +20,21 @@ export function useSendForm() {
   const amountCheck: AmountCheck | undefined =
     available === undefined ? undefined : checkAmount(amount, available);
   const noteTooLong = note.length > noteMaxLength;
+  const canSend =
+    recipient !== null &&
+    available !== undefined &&
+    amountCheck?.ok === true &&
+    !noteTooLong;
+  const submission = useSubmitTransfer(
+    canSend
+      ? payloadOf({
+          recipientId: recipient.accountId,
+          amount,
+          currency: available.currency,
+          note,
+        })
+      : undefined,
+  );
 
   return {
     wallet: {
@@ -43,7 +60,8 @@ export function useSendForm() {
     },
     amount: { text: amount, check: amountCheck, change: setAmount },
     note: { text: note, tooLong: noteTooLong, change: setNote },
-    canSend: recipient !== null && amountCheck?.ok === true && !noteTooLong,
+    canSend: canSend && !submission.sending,
+    submission,
   };
 }
 
