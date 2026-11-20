@@ -133,3 +133,17 @@ export function describeFailure(code: string): string {
   const words = code.toLowerCase().replaceAll("_", " ");
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
+
+const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" });
+const dateTimeFormat = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+export function formatDate(instant: string): string {
+  return dateFormat.format(new Date(instant));
+}
+
+export function formatDateTime(instant: string): string {
+  return dateTimeFormat.format(new Date(instant));
+}

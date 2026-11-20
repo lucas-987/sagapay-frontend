@@ -5,6 +5,8 @@ import {
   describeFailure,
   describeStep,
   directionOf,
+  formatDate,
+  formatDateTime,
   idsToAsk,
   initialsOf,
   signedAmount,
@@ -210,4 +212,12 @@ test.each([
   { code: "X", text: "X" },
 ])("writes the failure code $code as $text", ({ code, text }) => {
   expect(describeFailure(code)).toBe(text);
+});
+
+test("shows the date of a transfer in the customer's time zone", () => {
+  expect(formatDate("2026-11-12T12:00:00Z")).toBe("12 Nov 2026");
+});
+
+test("shows the date and time of a transfer in the customer's time zone", () => {
+  expect(formatDateTime("2026-11-12T12:05:00Z")).toBe("12 Nov 2026, 12:05");
 });

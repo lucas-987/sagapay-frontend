@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
     test: {
       include: ["src/**/*.test.{ts,tsx}", "tooling/**/*.test.ts"],
       environment: "jsdom",
+      env: { TZ: "UTC" },
       setupFiles: ["./src/test/setup.ts"],
       coverage: {
         provider: "v8",
