@@ -9,7 +9,7 @@ const routes = [
   {
     path: "activity",
     label: "Activity",
-    description: "Transfer activity is coming soon.",
+    description: "You have no transfers yet.",
   },
   {
     path: "send",
@@ -280,6 +280,7 @@ for (const { name, width, height } of viewports) {
                     "4,405.50 EUR",
                     "Reserved for transfers",
                     "120.00 EUR",
+                    "Recent activity",
                   ]
                 : []),
               description,

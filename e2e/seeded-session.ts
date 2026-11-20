@@ -12,8 +12,8 @@ export const seededWallet = {
 };
 
 // The preview server has no Keycloak or gateway: a stored session that
-// outlives the test and a fulfilled wallet request let the shell specs run
-// as a signed-in customer.
+// outlives the test and fulfilled wallet and transfer list requests let the
+// shell specs run as a signed-in customer with no activity.
 export async function seedSession(page: Page) {
   await page.addInitScript((key) => {
     sessionStorage.setItem(
@@ -29,5 +29,8 @@ export async function seedSession(page: Page) {
   }, storageKey);
   await page.route("**/v1/wallet", (route) =>
     route.fulfill({ json: seededWallet }),
+  );
+  await page.route("**/v1/transfers?*", (route) =>
+    route.fulfill({ json: { items: [], nextCursor: null } }),
   );
 }
