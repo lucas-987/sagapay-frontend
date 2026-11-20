@@ -181,6 +181,9 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.1
         version: 11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.1)(supports-color@10.2.2)
+      '@microsoft/fetch-event-source':
+        specifier: ^2.0.1
+        version: 2.0.1
       '@mui/icons-material':
         specifier: ^9.5.0
         version: 9.5.0(@mui/material@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@10.2.2))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.1)(supports-color@10.2.2))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
@@ -561,6 +564,9 @@ packages:
 
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
+
+  '@microsoft/fetch-event-source@2.0.1':
+    resolution: {integrity: sha512-W6CLUJ2eBMw3Rec70qrsEW0jOm/3twwJv21mrmj2yORiaVmVYGS4sSS5yUwvQc1ZlDLYGPnClVWmUUMagKNsfA==}
 
   '@mswjs/interceptors@0.41.9':
     resolution: {integrity: sha512-VVPPgHyQ6ShqnrmDWuxjmUIsO9gWyOZFmuOfLd9LfBGQJwZfy0gvv9pbHSJuoFNIYC7ZDX9aoFwowjcdSC4E8w==}
@@ -2522,6 +2528,8 @@ snapshots:
       keyv: 5.6.0
 
   '@keyv/serialize@1.1.1': {}
+
+  '@microsoft/fetch-event-source@2.0.1': {}
 
   '@mswjs/interceptors@0.41.9':
     dependencies:
