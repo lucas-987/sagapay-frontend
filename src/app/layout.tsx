@@ -27,9 +27,11 @@ const destinations = [
 ];
 
 export function Layout({
+  customerId,
   displayName,
   onSignOut,
 }: {
+  customerId: string;
   displayName: string;
   onSignOut: () => void;
 }) {
@@ -223,7 +225,7 @@ export function Layout({
             py: { xs: 3, md: 5 },
           }}
         >
-          <Outlet />
+          <Outlet context={{ customerId }} />
         </Box>
       </Box>
     </ThemeProvider>

@@ -11,8 +11,9 @@ function GuardedLayout() {
   const { signOut } = useSession();
   return (
     <RequireSession>
-      {({ displayName }) => (
+      {({ subject, displayName }) => (
         <Layout
+          customerId={subject}
           displayName={displayName}
           onSignOut={() => {
             void signOut();

@@ -6,7 +6,7 @@ import { useSession } from "../auth/session-context";
 export function RequireSession({
   children,
 }: {
-  children: (customer: { displayName: string }) => ReactNode;
+  children: (customer: { subject: string; displayName: string }) => ReactNode;
 }) {
   const { state, signIn } = useSession();
   const { pathname, search, hash } = useLocation();

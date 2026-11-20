@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import { useSession } from "../../auth/session-context";
+import { useOutletContext } from "react-router";
 import { TransferList } from "./transfer-list";
 import { useGetWalletQuery } from "./wallet-api";
 import { WalletCard } from "./wallet-card";
@@ -8,8 +8,7 @@ import { useActivity } from "./use-activity";
 
 export function ActivityPage() {
   const wallet = useGetWalletQuery(undefined);
-  const { state } = useSession();
-  const customerId = state.status === "signed-in" ? state.subject : "";
+  const { customerId } = useOutletContext<{ customerId: string }>();
   const { list, drawer, close } = useActivity(customerId);
 
   return (
