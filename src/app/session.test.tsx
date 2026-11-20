@@ -32,6 +32,29 @@ describe("protected routes", () => {
     },
   );
 
+  test("shows a failure with a sign-in button, not another redirect, after a refused callback", async () => {
+    const fake = fakeOidcClient(null);
+    fake.client.signinCallback.mockRejectedValue(
+      new Error("No matching state found in storage"),
+    );
+    const { router } = await renderApp("/auth/callback?code=c&state=s", {
+      fake,
+    });
+
+    const alert = await screen.findByRole("alert");
+
+    expect(router.state.location.pathname).toBe("/activity");
+    expect(alert).toHaveTextContent("We could not sign you in.");
+    expect(fake.client.signinRedirect).not.toHaveBeenCalled();
+    expect(screen.queryByRole("main")).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(fake.client.signinRedirect.mock.calls).toEqual([
+      [{ state: "/activity" }],
+    ]);
+  });
+
   test("shows the page to a signed-in customer without redirecting", async () => {
     const { fake } = await renderApp("/activity");
 
@@ -134,11 +157,31 @@ describe("shell identity", () => {
     expect(header).not.toHaveTextContent("Jordan Davis");
   });
 
+  test("closing the account menu keeps the customer signed in", async () => {
+    const user = userEvent.setup();
+    const { fake } = await renderApp("/activity");
+
+    await user.click(
+      await screen.findByRole("button", { name: "Account menu" }),
+    );
+    expect(screen.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("menuitem", { name: "Sign out" })).toBeNull();
+    });
+    expect(fake.client.signoutRedirect).not.toHaveBeenCalled();
+    expect(screen.getByRole("main")).toBeVisible();
+  });
+
   test("signing out leaves through Keycloak and shows no page", async () => {
     const user = userEvent.setup();
     const { fake } = await renderApp("/activity");
 
-    await user.click(await screen.findByRole("button", { name: "Sign out" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Account menu" }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Sign out" }));
 
     expect(fake.client.signoutRedirect).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("status")).toHaveTextContent("Signing you out…");

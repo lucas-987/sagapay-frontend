@@ -10,10 +10,13 @@ import {
   Button,
   CssBaseline,
   IconButton,
+  ListItemIcon,
+  Menu,
+  MenuItem,
   ThemeProvider,
   Typography,
 } from "@mui/material";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { makeTheme } from "../shared/theme/theme";
 import { useThemePreference } from "../shared/theme/use-theme-preference";
@@ -33,6 +36,7 @@ export function Layout({
   const { mode, toggleMode } = useThemePreference();
   const theme = useMemo(() => makeTheme(mode), [mode]);
   const dark = mode === "dark";
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
   return (
     <ThemeProvider theme={theme}>
@@ -171,9 +175,33 @@ export function Layout({
                 data-account-summary
                 sx={{ display: "flex", alignItems: "center", gap: 1 }}
               >
-                <Avatar sx={{ width: 36, height: 36, bgcolor: "#5e81ac" }}>
-                  <AccountCircleOutlined fontSize="small" />
-                </Avatar>
+                <IconButton
+                  aria-label="Account menu"
+                  aria-haspopup="menu"
+                  aria-expanded={menuAnchor !== null}
+                  onClick={(event) => {
+                    setMenuAnchor(event.currentTarget);
+                  }}
+                  sx={{ p: 0 }}
+                >
+                  <Avatar sx={{ width: 36, height: 36, bgcolor: "#5e81ac" }}>
+                    <AccountCircleOutlined fontSize="small" />
+                  </Avatar>
+                </IconButton>
+                <Menu
+                  anchorEl={menuAnchor}
+                  open={menuAnchor !== null}
+                  onClose={() => {
+                    setMenuAnchor(null);
+                  }}
+                >
+                  <MenuItem onClick={onSignOut}>
+                    <ListItemIcon>
+                      <LogoutOutlined fontSize="small" />
+                    </ListItemIcon>
+                    Sign out
+                  </MenuItem>
+                </Menu>
                 <Box sx={{ display: { xs: "none", md: "block" } }}>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
                     {displayName}
@@ -183,13 +211,6 @@ export function Layout({
                   </Typography>
                 </Box>
               </Box>
-              <IconButton
-                onClick={onSignOut}
-                aria-label="Sign out"
-                sx={{ width: 40, height: 40, color: "text.secondary" }}
-              >
-                <LogoutOutlined fontSize="small" />
-              </IconButton>
             </Box>
           </Box>
         </Box>

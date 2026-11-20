@@ -32,7 +32,8 @@ describe("M5-S02", () => {
       Object.keys(application.store.getState().gatewayApi.queries),
     ).toEqual(["getWallet(undefined)"]);
 
-    await user.click(screen.getByRole("button", { name: "Sign out" }));
+    await user.click(screen.getByRole("button", { name: "Account menu" }));
+    await user.click(screen.getByRole("menuitem", { name: "Sign out" }));
 
     expect(screen.queryByRole("heading", { name: "Activity" })).toBeNull();
     expect(screen.queryByRole("region", { name: "Your wallet" })).toBeNull();
@@ -52,8 +53,11 @@ describe("a second customer after the first", () => {
     },
     {
       how: "signs in after the first signed out",
-      beforeObserving: () =>
-        userEvent.click(screen.getByRole("button", { name: "Sign out" })),
+      beforeObserving: async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByRole("button", { name: "Account menu" }));
+        await user.click(screen.getByRole("menuitem", { name: "Sign out" }));
+      },
     },
   ])(
     "shows nothing of the first customer, even briefly, when the second $how",
