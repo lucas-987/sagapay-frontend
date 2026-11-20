@@ -1,14 +1,28 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, test } from "vitest";
 import { fakeOidcClient, userOf } from "../test/fake-oidc-client";
 import { julien, renderApp } from "../test/render-app";
+import { server } from "../test/setup";
 
 const callbackUrl = (query: string) =>
   new URL(`/auth/callback${query}`, location.origin).href;
 
 beforeEach(() => {
   localStorage.clear();
+  server.use(
+    http.get("*/v1/wallet", () =>
+      HttpResponse.json({
+        balance: { currency: "EUR", amount: "5.00" },
+        available: { currency: "EUR", amount: "4.00" },
+        held: { currency: "EUR", amount: "1.00" },
+      }),
+    ),
+    http.get("*/v1/transfers", () =>
+      HttpResponse.json({ items: [], nextCursor: null }),
+    ),
+  );
 });
 
 describe("protected routes", () => {
