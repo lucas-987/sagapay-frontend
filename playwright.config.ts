@@ -8,8 +8,8 @@ export default defineConfig({
   // The stack run covers what only the served image can show; the shell and
   // visual specs stay on the preview server, where they own their origin.
   ...(stackURL
-    ? { testMatch: "**/{stack,session}.spec.ts" }
-    : { testIgnore: "**/{stack,session}.spec.ts" }),
+    ? { testMatch: "**/{stack,session,send}.spec.ts" }
+    : { testIgnore: "**/{stack,session,send}.spec.ts" }),
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   workers: 2,
