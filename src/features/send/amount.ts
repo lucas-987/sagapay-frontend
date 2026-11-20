@@ -7,7 +7,7 @@ export type AmountCheck = { ok: true } | { ok: false; error: AmountError };
 
 const decimal = /^(-?)(\d+)(?:\.(\d+))?$/;
 
-function scaleOf(currency: string): number {
+export function currencyScale(currency: string): number {
   return new Intl.NumberFormat("en", {
     style: "currency",
     currency,
@@ -24,7 +24,7 @@ export function checkAmount(text: string, available: Money): AmountCheck {
   const parts = decimal.exec(trimmed);
   if (parts === null) return { ok: false, error: "format" };
   const [, sign, whole = "", fraction = ""] = parts;
-  const scale = scaleOf(available.currency);
+  const scale = currencyScale(available.currency);
   if (sign === "-" || BigInt(whole + fraction) === 0n) {
     return { ok: false, error: "not-positive" };
   }
