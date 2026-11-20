@@ -20,6 +20,9 @@ describe("M5-S02", () => {
   test("Signing out closes access to the previous customer's activity", async () => {
     server.use(
       http.get(walletUrl, () => HttpResponse.json(walletOf("4285.50"))),
+      http.get("*/v1/transfers", () =>
+        HttpResponse.json({ items: [], nextCursor: null }),
+      ),
     );
     const user = userEvent.setup();
     const { application } = await renderApp("/activity");
@@ -29,8 +32,8 @@ describe("M5-S02", () => {
       ).getAllByText("4,285.50 EUR"),
     ).toHaveLength(2);
     expect(
-      Object.keys(application.store.getState().gatewayApi.queries),
-    ).toEqual(["getWallet(undefined)"]);
+      Object.keys(application.store.getState().gatewayApi.queries).sort(),
+    ).toEqual(["getTransfers(undefined)", "getWallet(undefined)"]);
 
     await user.click(screen.getByRole("button", { name: "Account menu" }));
     await user.click(screen.getByRole("menuitem", { name: "Sign out" }));

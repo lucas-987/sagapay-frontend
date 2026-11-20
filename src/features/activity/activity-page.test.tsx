@@ -1,22 +1,19 @@
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
-import { Provider } from "react-redux";
 import { expect, test } from "vitest";
 import { server } from "../../test/setup";
-import { createTestStore } from "../../test/test-store";
-import { ActivityPage } from "./activity-page";
+import { renderApp } from "../../test/render-app";
 
 const walletUrl = new URL("/v1/wallet", location.origin).toString();
 
 function renderActivity() {
-  const store = createTestStore();
-  render(
-    <Provider store={store}>
-      <ActivityPage />
-    </Provider>,
+  server.use(
+    http.get("*/v1/transfers", () =>
+      HttpResponse.json({ items: [], nextCursor: null }),
+    ),
   );
-  return store;
+  return renderApp("/activity");
 }
 
 function walletBody({
@@ -49,7 +46,7 @@ test("shows a loading status while the wallet is being read", async () => {
     }),
   );
 
-  renderActivity();
+  await renderActivity();
 
   expect(
     screen.getByRole("status", { name: "Loading your balance" }),
@@ -74,7 +71,7 @@ test("shows the three amounts of the wallet exactly as the server sends them", a
     ),
   );
 
-  renderActivity();
+  await renderActivity();
 
   const wallet = within(
     await screen.findByRole("region", { name: "Your wallet" }),
@@ -101,10 +98,10 @@ test("sends one request for the wallet with the bearer token", async () => {
     }),
   );
 
-  renderActivity();
+  await renderActivity();
   await screen.findByRole("region", { name: "Your wallet" });
 
-  expect(seen).toEqual(["Bearer token"]);
+  expect(seen).toEqual(["Bearer token-of-julien-id"]);
 });
 
 test("explains the failure and reads the wallet again on retry", async () => {
@@ -120,7 +117,7 @@ test("explains the failure and reads the wallet again on retry", async () => {
     }),
   );
   const user = userEvent.setup();
-  renderActivity();
+  await renderActivity();
 
   const alert = await screen.findByRole("alert");
   expect(alert).toHaveTextContent("Your balance could not be loaded.");
@@ -162,7 +159,7 @@ test.each([
           };
     server.use(http.get(walletUrl, () => HttpResponse.json(body)));
 
-    renderActivity();
+    await renderActivity();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Your balance could not be loaded.",
@@ -175,7 +172,7 @@ test("shows the failure state when the wallet request is refused", async () => {
     http.get(walletUrl, () => new HttpResponse(null, { status: 403 })),
   );
 
-  renderActivity();
+  await renderActivity();
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "Your balance could not be loaded.",

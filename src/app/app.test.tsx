@@ -39,6 +39,9 @@ beforeEach(() => {
         held: { currency: "EUR", amount: "1.00" },
       }),
     ),
+    http.get("*/v1/transfers", () =>
+      HttpResponse.json({ items: [], nextCursor: null }),
+    ),
   );
   localStorage.clear();
   emulateColorScheme(false);
