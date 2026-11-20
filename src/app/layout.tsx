@@ -15,7 +15,6 @@ import {
 } from "@mui/material";
 import { useMemo } from "react";
 import { NavLink, Outlet } from "react-router";
-import { useSession } from "../auth/session-context";
 import { makeTheme } from "../shared/theme/theme";
 import { useThemePreference } from "../shared/theme/use-theme-preference";
 
@@ -24,8 +23,13 @@ const destinations = [
   { to: "/send", label: "Send money", icon: <SendOutlined /> },
 ];
 
-export function Layout() {
-  const session = useSession();
+export function Layout({
+  displayName,
+  onSignOut,
+}: {
+  displayName: string;
+  onSignOut: () => void;
+}) {
   const { mode, toggleMode } = useThemePreference();
   const theme = useMemo(() => makeTheme(mode), [mode]);
   const dark = mode === "dark";
@@ -172,9 +176,7 @@ export function Layout() {
                 </Avatar>
                 <Box sx={{ display: { xs: "none", md: "block" } }}>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    {session.state.status === "signed-in"
-                      ? session.state.displayName
-                      : ""}
+                    {displayName}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Personal account
@@ -182,9 +184,7 @@ export function Layout() {
                 </Box>
               </Box>
               <IconButton
-                onClick={() => {
-                  void session.signOut();
-                }}
+                onClick={onSignOut}
                 aria-label="Sign out"
                 sx={{ width: 40, height: 40, color: "text.secondary" }}
               >

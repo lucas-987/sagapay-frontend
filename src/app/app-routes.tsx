@@ -1,4 +1,5 @@
 import { Navigate, type NonIndexRouteObject } from "react-router";
+import { useSession } from "../auth/session-context";
 import { ActivityPage } from "../features/activity";
 import { SendMoneyPage } from "../features/send";
 import { ApplicationFailure, PageNotFound, RouteFailure } from "./error-pages";
@@ -7,9 +8,17 @@ import { Layout } from "./layout";
 import { RequireSession } from "./require-session";
 
 function GuardedLayout() {
+  const { signOut } = useSession();
   return (
     <RequireSession>
-      <Layout />
+      {({ displayName }) => (
+        <Layout
+          displayName={displayName}
+          onSignOut={() => {
+            void signOut();
+          }}
+        />
+      )}
     </RequireSession>
   );
 }

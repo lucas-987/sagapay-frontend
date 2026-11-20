@@ -3,7 +3,11 @@ import { useEffect, type ReactNode } from "react";
 import { useLocation } from "react-router";
 import { useSession } from "../auth/session-context";
 
-export function RequireSession({ children }: { children: ReactNode }) {
+export function RequireSession({
+  children,
+}: {
+  children: (customer: { displayName: string }) => ReactNode;
+}) {
   const { state, signIn } = useSession();
   const { pathname, search, hash } = useLocation();
   const signedOut = state.status === "signed-out";
@@ -14,7 +18,7 @@ export function RequireSession({ children }: { children: ReactNode }) {
     }
   }, [signedOut, signIn, pathname, search, hash]);
 
-  if (state.status === "signed-in") return children;
+  if (state.status === "signed-in") return children(state);
   return (
     <Box role="status" sx={{ p: 5, textAlign: "center" }}>
       <Typography>
