@@ -1,7 +1,7 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { beforeEach, expect, test } from "vitest";
+import { beforeEach, describe, expect, test } from "vitest";
 import { renderApp } from "../../test/render-app";
 import { server } from "../../test/setup";
 
@@ -100,25 +100,6 @@ test("lists the transfers in the order the server sends them, newest first", asy
   expect(rows).toEqual(["−3.00 EUR", "−2.00 EUR", "−1.00 EUR"]);
 });
 
-test("shows a generic label for a name that did not arrive", async () => {
-  serveTransfers({
-    "": {
-      items: [
-        transferBody({ id: "t1", senderId: customer, recipientId: olivia }),
-        transferBody({ id: "t2", senderId: noah, recipientId: customer }),
-      ],
-      nextCursor: null,
-    },
-  });
-  serveNames({ [olivia]: "Olivia Martin" });
-  await renderApp("/activity");
-
-  expect(
-    await screen.findByRole("button", { name: /Olivia Martin/ }),
-  ).toBeVisible();
-  expect(within(rowOf(/Received/)).getByText("Sender")).toBeVisible();
-});
-
 test("asks for the names of the page once, with each other party's id once", async () => {
   serveTransfers({
     "": {
@@ -136,32 +117,6 @@ test("asks for the names of the page once, with each other party's id once", asy
 
   await screen.findAllByRole("button", { name: /Olivia Martin/ });
   expect(names).toEqual([[olivia, noah, customer]]);
-});
-
-test("shows every transfer with generic labels when the names request fails", async () => {
-  serveTransfers({
-    "": {
-      items: [
-        transferBody({ id: "t1", senderId: customer, recipientId: olivia }),
-        transferBody({ id: "t2", senderId: noah, recipientId: customer }),
-      ],
-      nextCursor: null,
-    },
-  });
-  let attempts = 0;
-  server.use(
-    http.get("*/v1/users/names", () => {
-      attempts += 1;
-      return HttpResponse.json({ title: "Boom" }, { status: 500 });
-    }),
-  );
-  await renderApp("/activity");
-
-  expect(await screen.findByText("Recipient")).toBeVisible();
-  expect(screen.getByText("Sender")).toBeVisible();
-  expect(screen.getAllByRole("button", { name: /EUR/ })).toHaveLength(2);
-  expect(screen.queryByRole("alert")).toBeNull();
-  expect(attempts).toBe(1);
 });
 
 test("does not ask again for an account known from the first page", async () => {
@@ -225,25 +180,6 @@ test("does not ask the ledger when the page has no other party id", async () => 
 
   expect(await screen.findByText("Recipient")).toBeVisible();
   expect(names).toEqual([]);
-});
-
-test("shows no load more control on the last page", async () => {
-  serveTransfers({
-    "": { items: [transferBody({ id: "t1" })], nextCursor: null },
-  });
-  serveNames({ [olivia]: "Olivia Martin" });
-  await renderApp("/activity");
-
-  await screen.findByRole("button", { name: /Olivia Martin/ });
-  expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
-});
-
-test("shows an empty state when the customer has no transfer", async () => {
-  serveTransfers({ "": { items: [], nextCursor: null } });
-  await renderApp("/activity");
-
-  expect(await screen.findByText("You have no transfers yet.")).toBeVisible();
-  expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
 });
 
 test("explains the failure and reads the list again on retry", async () => {
@@ -311,4 +247,180 @@ test("keeps the loaded transfers and retries the next page when it fails", async
 
   expect(await screen.findByText("−2.00 EUR")).toBeVisible();
   expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test("shows a disabled loading control while the next page is being read", async () => {
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  server.use(
+    http.get("*/v1/transfers", async ({ request }) => {
+      if (new URL(request.url).searchParams.get("cursor") === null) {
+        return HttpResponse.json({
+          items: [transferBody({ id: "t1" })],
+          nextCursor: "cursor-1",
+        });
+      }
+      await gate;
+      return HttpResponse.json({
+        items: [transferBody({ id: "t2", amount: "2.00" })],
+        nextCursor: null,
+      });
+    }),
+  );
+  serveNames({ [olivia]: "Olivia Martin" });
+  const user = userEvent.setup();
+  await renderApp("/activity");
+
+  await screen.findByRole("button", { name: /Olivia Martin/ });
+  await user.click(screen.getByRole("button", { name: "Load more" }));
+
+  expect(
+    await screen.findByRole("button", { name: "Loading more…" }),
+  ).toBeDisabled();
+  release();
+  expect(await screen.findByText("−2.00 EUR")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Loading more…" })).toBeNull();
+});
+
+test("does not ask again for the ids of a failed names request when the next page loads", async () => {
+  serveTransfers({
+    "": {
+      items: [transferBody({ id: "t1", recipientId: olivia })],
+      nextCursor: "cursor-1",
+    },
+    "cursor-1": {
+      items: [
+        transferBody({ id: "t2", recipientId: olivia, amount: "2.00" }),
+        transferBody({ id: "t3", recipientId: emma, amount: "3.00" }),
+      ],
+      nextCursor: null,
+    },
+  });
+  const asked: string[][] = [];
+  server.use(
+    http.get("*/v1/users/names", ({ request }) => {
+      asked.push(new URL(request.url).searchParams.getAll("ids"));
+      return HttpResponse.json({ title: "Boom" }, { status: 500 });
+    }),
+  );
+  const user = userEvent.setup();
+  await renderApp("/activity");
+
+  await user.click(await screen.findByRole("button", { name: "Load more" }));
+
+  expect(await screen.findByText("−3.00 EUR")).toBeVisible();
+  expect(screen.getAllByText("Recipient")).toHaveLength(3);
+  await waitFor(() => {
+    expect(asked).toEqual([[olivia], [emma]]);
+  });
+});
+
+test("asks for the names of a page with 51 other parties in two requests of 50 and 1", async () => {
+  const parties = Array.from(
+    { length: 51 },
+    (_, index) =>
+      `00000000-0000-4000-a000-${String(index + 100).padStart(12, "0")}`,
+  );
+  serveTransfers({
+    "": {
+      items: parties.map((id, index) =>
+        transferBody({ id: `t${String(index)}`, recipientId: id }),
+      ),
+      nextCursor: null,
+    },
+  });
+  const names = serveNames({ [parties[50] ?? ""]: "Last Party" });
+  await renderApp("/activity");
+
+  expect(await screen.findByText("Last Party")).toBeVisible();
+  expect(names).toEqual([parties.slice(0, 50), [parties[50]]]);
+});
+
+describe("M5-S14", () => {
+  test("A transfer stays listed when the other party's name is missing from the answer", async () => {
+    serveTransfers({
+      "": {
+        items: [
+          transferBody({ id: "t1", senderId: customer, recipientId: olivia }),
+          transferBody({ id: "t2", senderId: noah, recipientId: customer }),
+        ],
+        nextCursor: null,
+      },
+    });
+    serveNames({});
+    await renderApp("/activity");
+
+    expect(await screen.findByText("Recipient")).toBeVisible();
+    expect(within(rowOf(/Received/)).getByText("Sender")).toBeVisible();
+    expect(screen.getAllByRole("button", { name: /EUR/ })).toHaveLength(2);
+  });
+
+  test("A transfer stays listed when the other party's name could not be fetched", async () => {
+    serveTransfers({
+      "": {
+        items: [
+          transferBody({ id: "t1", senderId: customer, recipientId: olivia }),
+          transferBody({ id: "t2", senderId: noah, recipientId: customer }),
+        ],
+        nextCursor: null,
+      },
+    });
+    let attempts = 0;
+    server.use(
+      http.get("*/v1/users/names", () => {
+        attempts += 1;
+        return HttpResponse.json({ title: "Boom" }, { status: 500 });
+      }),
+    );
+    await renderApp("/activity");
+
+    expect(await screen.findByText("Recipient")).toBeVisible();
+    expect(screen.getByText("Sender")).toBeVisible();
+    expect(screen.getAllByRole("button", { name: /EUR/ })).toHaveLength(2);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(attempts).toBe(1);
+  });
+});
+
+describe("M5-S15", () => {
+  test("A customer with no transfers sees an empty activity", async () => {
+    serveTransfers({ "": { items: [], nextCursor: null } });
+    await renderApp("/activity");
+
+    expect(await screen.findByText("You have no transfers yet.")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+
+  test("shows the empty state when the answer carries no items", async () => {
+    server.use(http.get("*/v1/transfers", () => HttpResponse.json({})));
+    await renderApp("/activity");
+
+    expect(await screen.findByText("You have no transfers yet.")).toBeVisible();
+  });
+});
+
+describe("M5-S16", () => {
+  test("The last page of activity offers no further loading", async () => {
+    serveTransfers({
+      "": {
+        items: [transferBody({ id: "t1", amount: "1.00" })],
+        nextCursor: "cursor-1",
+      },
+      "cursor-1": {
+        items: [transferBody({ id: "t2", amount: "2.00" })],
+        nextCursor: null,
+      },
+    });
+    serveNames({ [olivia]: "Olivia Martin" });
+    const user = userEvent.setup();
+    await renderApp("/activity");
+
+    await user.click(await screen.findByRole("button", { name: "Load more" }));
+
+    expect(await screen.findByText("−2.00 EUR")).toBeVisible();
+    expect(screen.getByText("−1.00 EUR")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
 });
