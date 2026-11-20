@@ -81,7 +81,9 @@ describe("decodeStreamEvent", () => {
     "amount",
     "currency",
   ] as const)("drops an event without %s", (field) => {
-    const { [field]: _omitted, ...incomplete } = body;
+    const incomplete = Object.fromEntries(
+      Object.entries(body).filter(([name]) => name !== field),
+    );
 
     expect(
       decodeStreamEvent(message("transfer.posted", incomplete)),
