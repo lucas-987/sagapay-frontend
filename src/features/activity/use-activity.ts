@@ -5,6 +5,7 @@ import type {
   TransferDrawerContent,
 } from "./transfer-drawer";
 import type { TransferListState } from "./transfer-list";
+import { verificationDeadlineOf } from "../verification";
 import { useCounterpartyNames } from "./use-counterparty-names";
 import {
   avatarColorOf,
@@ -42,6 +43,7 @@ function detailView(
 ): TransferDetailView {
   const direction = directionOf(transfer, customerId);
   const other = counterpartyOf(transfer, customerId, names);
+  const deadline = verificationDeadlineOf(transfer);
   return {
     headline: signedAmount(direction, transfer.amount),
     party: `${direction === "sent" ? "Sent to" : "Received from"} ${other.name}`,
@@ -62,6 +64,10 @@ function detailView(
         detail: [when, result].filter((part) => part !== "").join(" · "),
       };
     }),
+    verification:
+      direction === "sent" && deadline !== undefined
+        ? { transferId: transfer.id, deadline }
+        : undefined,
   };
 }
 

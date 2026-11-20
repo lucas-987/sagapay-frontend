@@ -9,6 +9,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { VerificationPrompt } from "../verification";
 import { StatusChip } from "./transfer-parts";
 import type { StatusTone } from "./transfer-logic";
 
@@ -22,6 +23,7 @@ export interface TransferDetailView {
   note: string | undefined;
   failure: string | undefined;
   steps: { title: string; detail: string }[];
+  verification: { transferId: string; deadline: string } | undefined;
 }
 
 export type TransferDrawerContent =
@@ -152,6 +154,14 @@ function Body({ content }: { content: TransferDrawerContent }) {
             </Box>
           </Box>
           <Divider />
+          {detail.verification !== undefined && (
+            <Box sx={{ mb: 3 }}>
+              <VerificationPrompt
+                key={detail.verification.transferId}
+                {...detail.verification}
+              />
+            </Box>
+          )}
           <Facts detail={detail} />
           {detail.steps.length > 0 && <Timeline steps={detail.steps} />}
         </>
