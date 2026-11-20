@@ -5,15 +5,20 @@ import type { Page } from "@playwright/test";
 const issuer = "http://localhost:8180/realms/sagapay";
 const clientId = "sagapay-frontend";
 
+export function passwordOf(username: "julien" | "gina"): string {
+  const passwordVariable = `${username.toUpperCase()}_PASSWORD`;
+  const password = process.env[passwordVariable];
+  if (!password)
+    throw new Error(`Set ${passwordVariable} for the browser stack`);
+  return password;
+}
+
 export async function signIn(
   page: Page,
   baseURL: string,
   username: "julien" | "gina",
 ): Promise<string> {
-  const passwordVariable = `${username.toUpperCase()}_PASSWORD`;
-  const password = process.env[passwordVariable];
-  if (!password)
-    throw new Error(`Set ${passwordVariable} for the browser stack`);
+  const password = passwordOf(username);
 
   const verifier = randomBytes(32).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");

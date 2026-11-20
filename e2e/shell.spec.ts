@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
+import { seedSession } from "./seeded-session";
 import { findLowContrastText } from "./text-contrast";
 
 const routes = [
@@ -16,6 +17,10 @@ const routes = [
     description: "Sending money is coming soon.",
   },
 ] as const;
+
+test.beforeEach(async ({ page }) => {
+  await seedSession(page);
+});
 
 const headerScreenshotStyle = fileURLToPath(
   new URL("./reference/header.css", import.meta.url),
@@ -38,6 +43,10 @@ function themeSwitch(page: Page, theme: "light" | "dark") {
   });
 }
 
+function accountMenu(page: Page) {
+  return page.getByRole("button", { name: "Account menu", exact: true });
+}
+
 async function expectActivePage(page: Page, path: string, label: string) {
   await expect(page).toHaveURL(`/${path}`);
   await expect(
@@ -50,7 +59,7 @@ async function expectActivePage(page: Page, path: string, label: string) {
 
 async function expectKeyboardOrder(page: Page, controls: readonly Locator[]) {
   const banner = page.getByRole("banner");
-  await expect(banner.getByRole("button")).toHaveCount(1);
+  await expect(banner.getByRole("button")).toHaveCount(2);
   await expect(banner.getByRole("link")).toHaveCount(2);
 
   const positions = [];
@@ -208,6 +217,7 @@ test.describe("narrow header", () => {
       navigation(page).getByRole("link", { name: "Activity", exact: true }),
       navigation(page).getByRole("link", { name: "Send money", exact: true }),
       themeSwitch(page, "light"),
+      accountMenu(page),
     ]);
   });
 });
@@ -226,6 +236,11 @@ for (const { name, width, height } of viewports) {
           test.beforeEach(async ({ page }) => {
             await page.goto(`/${path}`);
             await expectActivePage(page, path, label);
+            if (path === "activity") {
+              await expect(
+                page.getByRole("region", { name: "Your wallet" }),
+              ).toBeVisible();
+            }
           });
 
           test("matches the reference header", async ({ page }) => {
@@ -253,8 +268,20 @@ for (const { name, width, height } of viewports) {
             expect(results.text).toEqual([
               "Activity",
               "Send money",
-              ...(name === "desktop" ? ["Personal account"] : []),
+              ...(name === "desktop"
+                ? ["Julien Simon", "Personal account"]
+                : []),
               label,
+              ...(path === "activity"
+                ? [
+                    "Available balance",
+                    "4,285.50 EUR",
+                    "Total balance",
+                    "4,405.50 EUR",
+                    "Reserved for transfers",
+                    "120.00 EUR",
+                  ]
+                : []),
               description,
             ]);
             expect(results.violations).toEqual([]);
@@ -273,6 +300,7 @@ for (const { name, width, height } of viewports) {
                 exact: true,
               }),
               themeSwitch(page, theme),
+              accountMenu(page),
             ]);
           });
         });
