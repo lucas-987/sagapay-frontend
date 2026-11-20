@@ -92,6 +92,7 @@ jobs:
           SAGAPAY_BASE_URL: http://localhost:8088
         run: |
           source .sagapay-backend/infra/keycloak.env
+          SAGAPAY_FRAUD_VERIFICATION_CODE="$(sed -n 's/^SAGAPAY_FRAUD_VERIFICATION_CODE=//p' .sagapay-backend/.env)" \
           JULIEN_PASSWORD="$JULIEN_PASSWORD" GINA_PASSWORD="$GINA_PASSWORD" pnpm exec playwright test
       - name: Stop browser stack
         if: always()
